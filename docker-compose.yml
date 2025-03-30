@@ -1,0 +1,56 @@
+version: "3.8"
+services:
+  web:
+    build: .
+    ports:
+      - "8000:80"
+    depends_on:
+      - db
+      - redis
+    environment:
+      DATABASE_URL: "postgresql://myuser:password@db:5432/fastapi_db"
+      REDIS_URL: "redis://redis:6379/0"
+      SECRET_KEY: "my_super_secret_key"
+      REFRESH_TOKEN_EXPIRE_DAYS: "7"
+      INACTIVE_DAYS_THRESHOLD: "30"
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: fastapi_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  celery_worker:
+    build: .
+    command: celery -A tasks.celery_app worker --loglevel=info
+    depends_on:
+      - db
+      - redis
+    environment:
+      DATABASE_URL: "postgresql://myuser:password@db:5432/fastapi_db"
+      REDIS_URL: "redis://redis:6379/0"
+      SECRET_KEY: "my_super_secret_key"
+
+  celery_beat:
+    build: .
+    command: celery -A tasks.celery_app beat --loglevel=info
+    depends_on:
+      - db
+      - redis
+    environment:
+      DATABASE_URL: "postgresql://myuser:password@db:5432/fastapi_db"
+      REDIS_URL: "redis://redis:6379/0"
+      SECRET_KEY: "my_super_secret_key"
+
+volumes:
+  postgres_data:
