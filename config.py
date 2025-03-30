@@ -1,8 +1,8 @@
 import os
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://myuser:090695@db:5432/fastapi_db")
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://myuser:090695@localhost:5432/fastapi_db")
 DATABASE_URL_ASYNC = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
-REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 SECRET_KEY = os.environ.get("SECRET_KEY", "my_super_secret_key")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
