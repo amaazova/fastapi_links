@@ -194,4 +194,247 @@
 - **cleanup_inactive_links_task**: Удаляет неактивные ссылки (если с момента последнего редиректа или создания прошло более заданного количества дней).
 
 ---
+## Примеры-запросов
+
+### 1. Регистрация пользователя
+
+**Запрос**
+```bash
+curl -X POST "http://localhost:8000/users/register" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "username": "yuzuru_hanyu",
+        "password": "secure_password"
+      }'
+```
+
+**Пример ответа**
+```json
+{
+  "id": 1,
+  "username": "yuzuru_hanyu"
+}
+```
+
+> **Пояснение:**  
+Создаётся новый пользователь с именем yuzuru_hanyu.
+
+---
+
+### 2. Аутентификация (получение токенов)
+
+**Запрос**
+```bash
+curl -X POST "http://localhost:8000/users/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=yuzuru_hanyu&password=secure_password"
+```
+
+**Пример ответа**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....",
+  "token_type": "bearer"
+}
+```
+
+> **Пояснение:**  
+Полученные токены используются для доступа к защищённым эндпоинтам.
+
+---
+
+### 3. Получение списка ссылок пользователя
+
+**Запрос**
+```bash
+curl -X GET "http://localhost:8000/users/links" \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Пример ответа**
+```json
+[
+  {
+    "id": 1,
+    "original_url": "https://example.com",
+    "short_code": "privateLink",
+    "created_at": "2025-01-01T12:00:00",
+    "expires_at": "2025-12-31T23:59:59",
+    "redirect_count": 0,
+    "last_redirect_at": null,
+    "owner_id": 1,
+    "category": "News",
+    "is_public": false
+  }
+]
+```
+
+> **Пояснение:**  
+Возвращается список ссылок, созданных пользователем yuzuru_hanyu.
+
+---
+
+### 4. Создание сокращённой ссылки (приватной, для авторизованных пользователей)
+
+**Запрос**
+```bash
+curl -X POST "http://localhost:8000/shorten" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <access_token>" \
+  -d '{
+        "original_url": "https://example.com",
+        "custom_alias": "privateLink",
+        "category": "News",
+        "expires_at": "2025-12-31T23:59:59",
+        "is_public": false
+      }'
+```
+
+**Пример ответа**
+```json
+{
+  "id": 1,
+  "original_url": "https://example.com",
+  "short_code": "privateLink",
+  "created_at": "2025-01-01T12:00:00",
+  "expires_at": "2025-12-31T23:59:59",
+  "redirect_count": 0,
+  "last_redirect_at": null,
+  "owner_id": 1,
+  "category": "News",
+  "is_public": false
+}
+```
+
+> **Пояснение:**  
+Ссылка создаётся с кастомным alias privateLink и привязывается к зарегистрированному пользователю yuzuru_hanyu.
+
+---
+
+### 5. Создание публичной сокращённой ссылки (без авторизации)
+
+**Запрос:**
+```bash
+curl -X POST "http://localhost:8000/shorten/public" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "original_url": "https://public-example.com",
+        "custom_alias": "publicLink",
+        "category": "Public",
+        "expires_at": "2025-12-31T23:59:59",
+        "is_public": true
+      }'
+```
+
+**Пример ответа:**
+```json
+{
+  "id": 2,
+  "original_url": "https://public-example.com",
+  "short_code": "publicLink",
+  "created_at": "2025-01-02T12:00:00",
+  "expires_at": "2025-12-31T23:59:59",
+  "redirect_count": 0,
+  "last_redirect_at": null,
+  "owner_id": null,
+  "category": "Public",
+  "is_public": true
+}
+```
+
+> **Пояснение:** Публичная ссылка создаётся без привязки к пользователю (`owner_id` равно `null`).
+
+### 6. Поиск ссылок
+
+#### 6.1 Поиск публичных ссылок (без авторизации)
+```bash
+curl -X GET "http://localhost:8000/search?query=example"
+```
+
+#### 6.2 Поиск ссылок для авторизованного пользователя
+```bash
+curl -X GET "http://localhost:8000/search?query=example&skip=0&limit=10" \
+  -H "Authorization: Bearer <access_token>"
+```
+
+> **Пояснение:** Параметры `skip` и `limit` используются для пагинации.
+
+### 7. Получение статистики по ссылке
+
+#### 7.1 Статистика по приватной ссылке (с авторизацией)
+```bash
+curl -X GET "http://localhost:8000/privateLink/stats" \
+  -H "Authorization: Bearer <access_token>"
+```
+
+#### 7.2 Статистика по публичной ссылке (без авторизации)
+```bash
+curl -X GET "http://localhost:8000/publicLink/stats"
+```
+
+> **Пояснение:** Статистика для приватных ссылок доступна только с авторизацией.
+
+### 8. Генерация QR-кода для ссылки
+
+#### 8.1 QR-код для приватной ссылки (с авторизацией)
+```bash
+curl -X GET "http://localhost:8000/privateLink/qrcode" \
+  -H "Authorization: Bearer <access_token>" \
+  --output privateLink_qrcode.png
+```
+
+#### 8.2 QR-код для публичной ссылки (без авторизации)
+```bash
+curl -X GET "http://localhost:8000/publicLink/qrcode" \
+  --output publicLink_qrcode.png
+```
+
+### 9. Обновление ссылки (для приватной ссылки)
+
+**Запрос:**
+```bash
+curl -X PUT "http://localhost:8000/privateLink" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <access_token>" \
+  -d '{
+        "original_url": "https://updated-example.com",
+        "custom_alias": "privateLink",
+        "category": "Updated",
+        "expires_at": "2026-01-01T00:00:00",
+        "is_public": false
+      }'
+```
+
+### 10. Удаление ссылки (для приватной ссылки)
+
+**Запрос:**
+```bash
+curl -X DELETE "http://localhost:8000/privateLink" \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Пример ответа:**
+```json
+{
+  "message": "Link deleted"
+}
+```
+
+### 11. Редирект по короткому коду
+
+#### Запрос для приватной ссылки
+```bash
+curl -L "http://localhost:8000/privateLink"
+```
+
+#### Запрос для публичной ссылки
+```bash
+curl -L "http://localhost:8000/publicLink"
+```
+
+> **Пояснение:** Редирект осуществляется без авторизации; сервер увеличивает счётчик редиректов и перенаправляет на оригинальный URL.
+
+
+
 
